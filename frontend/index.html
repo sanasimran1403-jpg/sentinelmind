@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SentinelMind – Security Operations</title>
+<style>
+  /* ─── Reset & base ──────────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    /* Colour palette */
+    --bg-base:      #0d1117;
+    --bg-surface:   #161b22;
+    --bg-card:      #1c2230;
+    --bg-card-hover:#202840;
+    --bg-input:     #13181f;
+    --border:       #30363d;
+    --border-soft:  #21262d;
+
+    --text-primary: #e6edf3;
+    --text-secondary:#8b949e;
+    --text-muted:   #484f58;
+
+    --accent-blue:  #58a6ff;
+    --accent-purple:#7c5cd8;
+
+    /* Severity colours */
+    --high:         #f85149;
+    --high-dim:     rgba(248, 81, 73, 0.12);
+    --high-glow:    rgba(248, 81, 73, 0.35);
+    --med:          #e3b341;
+    --med-dim:      rgba(227, 179, 65, 0.12);
+    --low:          #3fb950;
+    --low-dim:      rgba(63, 185, 80, 0.12);
+
+    /* MITRE tag */
+    --mitre-bg:     rgba(88, 166, 255, 0.10);
+    --mitre-fg:     #58a6ff;
+
+    /* Spacing */
+    --radius:       8px;
+    --radius-lg:    12px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    min-height: 100vh;
+  }
+
+  /* ─── Scrollbar ─────────────────────────────────────────────────────────── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-base); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ─── Layout wrapper ────────────────────────────────────────────────────── */
+  .layout {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+  }
+
+  /* ─── Top nav / header ──────────────────────────────────────────────────── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 0 16px;
+    border-bottom: 1px solid var(--border-soft);
+    margin-bottom: 28px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-icon {
+    width: 32px; height: 36px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .brand-icon svg { display: block; }
+
+  .brand-name {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    color: var(--text-primary);
+  }
+  .brand-name span { color: var(--high); }
+
+  .brand-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    margin-top: -2px;
+  }
+
+  /* Live dot */
+  .status-dot {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .status-dot::before {
+    content: '';
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--low);
+    box-shadow: 0 0 6px var(--low);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.45; }
+  }
+
+  /* ─── View toggle ───────────────────────────────────────────────────────── */
+  .view-toggle {
+    display: flex;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .view-toggle button {
+    padding: 7px 14px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.18s, color 0.18s;
+    white-space: nowrap;
+  }
+  .view-toggle button.active {
+    background: var(--accent-blue);
+    color: #fff;
+    font-weight: 600;
+  }
+
+  /* ─── Section labels ────────────────────────────────────────────────────── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  /* ─── Stats cards ───────────────────────────────────────────────────────── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px 16px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: var(--border); }
+
+  /* Left accent bar */
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--card-accent, var(--accent-blue));
+    border-radius: 3px 0 0 3px;
+  }
+  .stat-card.high         { --card-accent: var(--high); }
+  .stat-card.med          { --card-accent: var(--med);  }
+  .stat-card.low          { --card-accent: var(--low);  }
+  .stat-card.total        { --card-accent: var(--accent-blue); }
+  .stat-card.alerts-total { --card-accent: var(--accent-purple); }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-card.high .stat-value { color: var(--high); }
+  .stat-card.med  .stat-value { color: var(--med);  }
+  .stat-card.low  .stat-value { color: var(--low);  }
+
+  .stat-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* ─── Alerts toolbar ────────────────────────────────────────────────────── */
+  .alerts-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .alerts-count {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .alerts-count strong { color: var(--text-primary); }
+
+  /* Filter pills */
+  .filter-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .pill {
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: none;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .pill:hover { border-color: var(--text-secondary); color: var(--text-primary); }
+  .pill.active           { border-color: var(--accent-blue); color: var(--accent-blue); background: rgba(88,166,255,.08); }
+  .pill.high.active      { border-color: var(--high); color: var(--high); background: var(--high-dim); }
+  .pill.med.active       { border-color: var(--med);  color: var(--med);  background: var(--med-dim);  }
+  .pill.low.active       { border-color: var(--low);  color: var(--low);  background: var(--low-dim);  }
+
+  /* ─── Alert list ────────────────────────────────────────────────────────── */
+  .alerts-list { display: flex; flex-direction: column; gap: 10px; }
+
+  /* ─── Alert card ────────────────────────────────────────────────────────── */
+  .alert-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .alert-card:hover { border-color: var(--border); }
+  .alert-card.high  { border-left: 3px solid var(--high); }
+  .alert-card.med   { border-left: 3px solid var(--med);  }
+  .alert-card.low   { border-left: 3px solid var(--low);  }
+
+  /* Card header row (always visible) */
+  .card-header {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .card-header:hover { background: var(--bg-card-hover); }
+
+  /* Severity badge */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .badge.high { background: var(--high-dim); color: var(--high); border: 1px solid rgba(248,81,73,.3); }
+  .badge.med  { background: var(--med-dim);  color: var(--med);  border: 1px solid rgba(227,179,65,.3); }
+  .badge.low  { background: var(--low-dim);  color: var(--low);  border: 1px solid rgba(63,185,80,.3);  }
+
+  /* Badge dot */
+  .badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* Card identity section */
+  .card-identity { min-width: 0; }
+  .card-threat-type {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 3px;
+    flex-wrap: wrap;
+  }
+  .card-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  /* Username — clickable */
+  .username-link {
+    color: var(--accent-blue);
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .username-link:hover { text-decoration: underline; }
+
+  /* MITRE tag */
+  .mitre-tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--mitre-bg);
+    color: var(--mitre-fg);
+    border: 1px solid rgba(88,166,255,.2);
+    font-family: "SF Mono", "Consolas", monospace;
+    white-space: nowrap;
+  }
+
+  /* Risk score */
+  .risk-score-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+    min-width: 68px;
+  }
+  .risk-number {
+    font-size: 22px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .risk-number.high { color: var(--high); }
+  .risk-number.med  { color: var(--med);  }
+  .risk-number.low  { color: var(--low);  }
+
+  .risk-bar-track {
+    width: 68px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .risk-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.6s cubic-bezier(.4,0,.2,1);
+  }
+  .risk-bar-fill.high { background: var(--high); box-shadow: 0 0 6px var(--high-glow); }
+  .risk-bar-fill.med  { background: var(--med); }
+  .risk-bar-fill.low  { background: var(--low); }
+
+  /* Chevron */
+  .chevron {
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    font-size: 16px;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .alert-card.expanded .chevron { transform: rotate(180deg); }
+
+  /* Card detail (collapsible) */
+  .card-detail {
+    display: none;
+    border-top: 1px solid var(--border-soft);
+    padding: 16px 18px 18px;
+    gap: 12px;
+    flex-direction: column;
+  }
+  .alert-card.expanded .card-detail { display: flex; }
+
+  .detail-section {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+  .detail-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .detail-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.65;
+  }
+
+  /* Recommended action — highlighted */
+  .action-section {
+    background: rgba(88,166,255,.06);
+    border-color: rgba(88,166,255,.2);
+  }
+  .action-section .detail-section-label { color: var(--accent-blue); }
+  .action-section .detail-text { color: var(--text-primary); }
+
+  /* Stats row inside detail */
+  .detail-stats-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .detail-stat {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .detail-stat strong {
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  /* ─── Loading / error states ────────────────────────────────────────────── */
+  .state-placeholder {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+  }
+  .state-placeholder .spinner {
+    width: 32px; height: 32px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent-blue);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-banner {
+    background: rgba(248,81,73,.08);
+    border: 1px solid rgba(248,81,73,.3);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    color: var(--high);
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+
+  /* ─── Modal overlay ─────────────────────────────────────────────────────── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 640px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border-soft);
+    flex-shrink: 0;
+  }
+  .modal-title { font-size: 15px; font-weight: 600; }
+  .modal-title span { color: var(--accent-blue); font-family: "SF Mono","Consolas",monospace; }
+
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 2px;
+    transition: color 0.15s;
+  }
+  .modal-close:hover { color: var(--text-primary); }
+
+  .modal-body {
+    overflow-y: auto;
+    padding: 20px 22px;
+    flex: 1;
+  }
+
+  /* ─── Timeline ──────────────────────────────────────────────────────────── */
+  .timeline { position: relative; padding-left: 24px; }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 8px; top: 6px; bottom: 6px;
+    width: 1px;
+    background: var(--border);
+  }
+
+  .timeline-event {
+    position: relative;
+    margin-bottom: 16px;
+  }
+  .timeline-event::before {
+    content: '';
+    position: absolute;
+    left: -20px; top: 6px;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+  }
+  .timeline-event.success::before { border-color: var(--low);  background: var(--low-dim);  }
+  .timeline-event.failed::before  { border-color: var(--high); background: var(--high-dim); }
+  .timeline-event.warning::before { border-color: var(--med);  background: var(--med-dim);  }
+
+  .te-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 2px;
+  }
+  .te-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: "SF Mono","Consolas",monospace;
+  }
+  .te-type {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  .te-status {
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 3px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .te-status.success { background: var(--low-dim);  color: var(--low);  }
+  .te-status.failed  { background: var(--high-dim); color: var(--high); }
+  .te-meta { font-size: 12px; color: var(--text-muted); }
+
+  /* Alerts section inside modal */
+  .modal-alerts-section { margin-top: 24px; }
+  .modal-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  .modal-alert-item {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .modal-alert-item .badge { flex-shrink: 0; margin-top: 1px; }
+  .mai-body { min-width: 0; }
+  .mai-type  { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+  .mai-score { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* ─── Footer ────────────────────────────────────────────────────────────── */
+  .page-footer {
+    text-align: center;
+    padding-top: 32px;
+    font-size: 11px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border-soft);
+    margin-top: 40px;
+  }
+
+  /* ─── Responsive ────────────────────────────────────────────────────────── */
+  @media (max-width: 640px) {
+    .card-header {
+      grid-template-columns: auto 1fr;
+      grid-template-rows: auto auto;
+    }
+    .risk-score-wrap { display: none; }
+    .chevron { grid-column: 2; justify-self: end; grid-row: 1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ── Top navigation ───────────────────────────────────────────────────── -->
+  <nav class="topbar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="32" height="36" viewBox="0 0 32 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 2L3 7.5V18C3 25.2 8.8 32 16 34C23.2 32 29 25.2 29 18V7.5L16 2Z"
+                fill="#1c2230" stroke="#f85149" stroke-width="1.5"/>
+          <path d="M11 18l3.5 3.5L21 14" stroke="#f85149" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">Sentinel<span>Mind</span></div>
+        <div class="brand-sub">Security Operations Platform</div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div class="status-dot" id="live-status">Live</div>
+
+      <!-- Technical / Simple view toggle -->
+      <div class="view-toggle" role="group" aria-label="Explanation view">
+        <button id="btn-technical" class="active" onclick="setView('technical')">Technical View</button>
+        <button id="btn-simple"               onclick="setView('simple')">Simple View</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Error banner (hidden by default) ─────────────────────────────────── -->
+  <div id="error-banner" class="error-banner" style="display:none;"></div>
+
+  <!-- ── Stats section ────────────────────────────────────────────────────── -->
+  <div class="section-label">Overview</div>
+  <div class="stats-grid" id="stats-grid">
+    <div class="state-placeholder" style="grid-column:1/-1;padding:30px;">
+      <div class="spinner"></div>Loading…
+    </div>
+  </div>
+
+  <!-- ── Alerts section ───────────────────────────────────────────────────── -->
+  <div class="alerts-toolbar">
+    <div class="alerts-count" id="alerts-count">
+      <span class="spinner"
+            style="display:inline-block;width:14px;height:14px;border-width:2px;
+                   vertical-align:middle;margin-right:6px;"></span>
+      Fetching alerts…
+    </div>
+    <div class="filter-pills" id="filter-pills">
+      <button class="pill active" data-filter="all"    onclick="setFilter('all',this)">All</button>
+      <button class="pill high"   data-filter="High"   onclick="setFilter('High',this)">High</button>
+      <button class="pill med"    data-filter="Medium" onclick="setFilter('Medium',this)">Medium</button>
+      <button class="pill low"    data-filter="Low"    onclick="setFilter('Low',this)">Low</button>
+    </div>
+  </div>
+
+  <div class="alerts-list" id="alerts-list"></div>
+
+  <!-- ── Footer ───────────────────────────────────────────────────────────── -->
+  <footer class="page-footer">
+    SentinelMind &mdash; Security Operations Platform &nbsp;|&nbsp;
+    Data sourced from <code>localhost:8000</code>
+  </footer>
+
+</div>
+
+<!-- ── Timeline modal ─────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">
+        Attack Story &mdash; <span id="modal-username"></span>
+      </div>
+      <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-body">
+      <div class="state-placeholder">
+        <div class="spinner"></div>Loading timeline…
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   SentinelMind Dashboard — vanilla JS
+   ============================================================ */
+
+const API = 'http://localhost:8000';
+
+/* ── State ───────────────────────────────────────────────── */
+let allAlerts    = [];          // full sorted alert list from /alerts
+let activeFilter = 'all';       // current severity filter pill
+let activeView   = 'technical'; // 'technical' | 'simple'
+
+/* ── Utility helpers ─────────────────────────────────────── */
+
+/**
+ * Format snake_case threat_type into a readable label.
+ * e.g. "brute_force" → "Brute Force Attack"
+ */
+function formatThreatType(t) {
+  const map = {
+    brute_force:                    'Brute Force Attack',
+    off_hours_access:               'Off-Hours Access',
+    privilege_escalation_sensitive: 'Privilege Escalation + Data Access',
+  };
+  return map[t] || t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+/** Severity string → CSS class key ('high' | 'med' | 'low'). */
+function sevClass(sev) {
+  return { High: 'high', Medium: 'med', Low: 'low' }[sev] ?? 'low';
+}
+
+/** Format ISO timestamp to a short human string. */
+function fmtTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleString('en-GB', {
+    month: 'short', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  });
+}
+
+/** Show the error banner with a message. */
+function showError(msg) {
+  const el = document.getElementById('error-banner');
+  el.textContent = '\u26a0  ' + msg;
+  el.style.display = 'block';
+}
+
+/** Escape HTML special characters to prevent XSS. */
+function escHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/* ── Data loading ────────────────────────────────────────── */
+
+async function loadAll() {
+  try {
+    const [statsRes, alertsRes] = await Promise.all([
+      fetch(`${API}/stats`),
+      fetch(`${API}/alerts`),
+    ]);
+
+    if (!statsRes.ok)  throw new Error(`/stats returned ${statsRes.status}`);
+    if (!alertsRes.ok) throw new Error(`/alerts returned ${alertsRes.status}`);
+
+    const stats  = await statsRes.json();
+    const alerts = await alertsRes.json();
+
+    renderStats(stats);
+    allAlerts = alerts; // already sorted by risk_score desc from the backend
+    renderAlerts();
+
+    // Update the live status label with the fetch timestamp
+    document.getElementById('live-status').textContent =
+      'Updated ' + new Date().toLocaleTimeString('en-GB', { hour12: false });
+
+  } catch (err) {
+    showError(
+      `Could not connect to the SentinelMind API at ${API}. ` +
+      `Make sure the backend is running: uvicorn main:app --reload. ` +
+      `(${err.message})`
+    );
+    document.getElementById('stats-grid').innerHTML =
+      '<div class="state-placeholder" style="grid-column:1/-1">No data available.</div>';
+    document.getElementById('alerts-list').innerHTML = '';
+    document.getElementById('alerts-count').textContent = 'Connection failed.';
+  }
+}
+
+/* ── Stats rendering ─────────────────────────────────────── */
+
+function renderStats(stats) {
+  const sb = stats.severity_breakdown ?? {};
+  const cards = [
+    { label: 'Total Events',  value: stats.total_events,  cls: 'total',        sub: `${stats.unique_users} users &middot; ${stats.unique_ips} IPs` },
+    { label: 'Total Alerts',  value: stats.total_alerts,  cls: 'alerts-total', sub: 'Threats detected' },
+    { label: 'High',          value: sb.High   ?? 0,      cls: 'high',         sub: 'Critical severity' },
+    { label: 'Medium',        value: sb.Medium ?? 0,      cls: 'med',          sub: 'Notable activity' },
+    { label: 'Low',           value: sb.Low    ?? 0,      cls: 'low',          sub: 'Informational' },
+  ];
+
+  document.getElementById('stats-grid').innerHTML = cards.map(c => `
+    <div class="stat-card ${c.cls}">
+      <div class="stat-label">${c.label}</div>
+      <div class="stat-value">${c.value}</div>
+      <div class="stat-sub">${c.sub}</div>
+    </div>
+  `).join('');
+}
+
+/* ── Alert list rendering ────────────────────────────────── */
+
+function renderAlerts() {
+  const list    = document.getElementById('alerts-list');
+  const countEl = document.getElementById('alerts-count');
+
+  // Apply active severity filter
+  const filtered = activeFilter === 'all'
+    ? allAlerts
+    : allAlerts.filter(a => a.severity === activeFilter);
+
+  countEl.innerHTML =
+    `Showing <strong>${filtered.length}</strong> of ` +
+    `<strong>${allAlerts.length}</strong> alert${allAlerts.length !== 1 ? 's' : ''}`;
+
+  if (filtered.length === 0) {
+    list.innerHTML =
+      '<div class="state-placeholder">No alerts match the current filter.</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map((a, i) => buildAlertCard(a, i)).join('');
+
+  // Animate risk bar fills after the DOM insertion
+  requestAnimationFrame(() => {
+    filtered.forEach((a, i) => {
+      const fill = document.getElementById(`risk-fill-${i}`);
+      if (fill) fill.style.width = `${a.risk_score}%`;
+    });
+  });
+}
+
+/** Build the HTML string for a single alert card. */
+function buildAlertCard(a, idx) {
+  const sc         = sevClass(a.severity);
+  const tt         = formatThreatType(a.threat_type);
+  const techText   = escHtml(a.technical_explanation ?? '');
+  const simpleText = escHtml(a.simple_explanation    ?? '');
+  const actionText = escHtml(a.recommended_action    ?? '');
+
+  return `
+  <div class="alert-card ${sc}" id="card-${idx}">
+
+    <!-- Header row — clicking anywhere here toggles the detail panel -->
+    <div class="card-header"
+         onclick="toggleCard(${idx})"
+         role="button"
+         aria-expanded="false"
+         aria-controls="detail-${idx}">
+
+      <!-- Severity badge -->
+      <div class="badge ${sc}">${a.severity}</div>
+
+      <!-- Threat type + meta row -->
+      <div class="card-identity">
+        <div class="card-threat-type">${tt}</div>
+        <div class="card-meta">
+          <span class="card-meta-item">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" style="opacity:.6">
+              <path d="M8 8a3 3 0 100-6 3 3 0 000 6zm-5 6a5 5 0 0110 0H3z"/>
+            </svg>
+            <!-- Username is a clickable link opening the timeline modal -->
+            <span class="username-link"
+                  onclick="openTimeline(event,'${escHtml(a.username)}')"
+                  title="View attack timeline for ${escHtml(a.username)}">
+              ${escHtml(a.username)}
+            </span>
+          </span>
+          <span class="card-meta-item">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" style="opacity:.6">
+              <path d="M8 0a8 8 0 100 16A8 8 0 008 0zM1 8a7 7 0 017-7 7 7 0 017 7 7 7 0 01-7 7A7 7 0 011 8z"/>
+              <path d="M8 4a4 4 0 100 8 4 4 0 000-8z" opacity=".3"/>
+            </svg>
+            ${escHtml(a.source_ip)}
+          </span>
+          <span class="mitre-tag" title="${escHtml(a.mitre_name)}">
+            ${escHtml(a.mitre_technique)}
+          </span>
+        </div>
+      </div>
+
+      <!-- Numeric risk score + mini progress bar -->
+      <div class="risk-score-wrap">
+        <div class="risk-number ${sc}">${a.risk_score}</div>
+        <div class="risk-bar-track">
+          <div class="risk-bar-fill ${sc}" id="risk-fill-${idx}" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Chevron indicator (rotates when expanded) -->
+      <div class="chevron" aria-hidden="true">&#8964;</div>
+    </div>
+
+    <!-- Expandable detail panel -->
+    <div class="card-detail" id="detail-${idx}">
+
+      <!-- Explanation section — content changes with the view toggle -->
+      <div class="detail-section" id="expl-${idx}">
+        <div class="detail-section-label" id="expl-label-${idx}">
+          ${activeView === 'technical' ? 'Technical Analysis' : 'Plain-English Summary'}
+        </div>
+        <div class="detail-text" id="expl-text-${idx}">
+          ${activeView === 'technical' ? techText : simpleText}
+        </div>
+        <!-- Hidden templates store both texts so we can swap without a re-render -->
+        <template id="tech-tmpl-${idx}">${techText}</template>
+        <template id="simple-tmpl-${idx}">${simpleText}</template>
+      </div>
+
+      <!-- Recommended action (always shown) -->
+      <div class="detail-section action-section">
+        <div class="detail-section-label">Recommended Action</div>
+        <div class="detail-text">${actionText}</div>
+      </div>
+
+      <!-- Timing and grouping metadata -->
+      <div class="detail-stats-row">
+        <div class="detail-stat">First seen: <strong>${fmtTime(a.first_seen)}</strong></div>
+        <div class="detail-stat">Last seen: <strong>${fmtTime(a.last_seen)}</strong></div>
+        <div class="detail-stat">Events in group: <strong>${a.event_count}</strong></div>
+        <div class="detail-stat">
+          MITRE: <strong>${escHtml(a.mitre_technique)} &mdash; ${escHtml(a.mitre_name)}</strong>
+        </div>
+      </div>
+
+    </div><!-- /.card-detail -->
+  </div><!-- /.alert-card -->`;
+}
+
+/* ── Card expand / collapse ──────────────────────────────── */
+
+function toggleCard(idx) {
+  const card   = document.getElementById(`card-${idx}`);
+  const header = card.querySelector('.card-header');
+  card.classList.toggle('expanded');
+  header.setAttribute('aria-expanded', card.classList.contains('expanded'));
+}
+
+/* ── Explanation view toggle ─────────────────────────────── */
+
+function setView(mode) {
+  activeView = mode;
+  document.getElementById('btn-technical').classList.toggle('active', mode === 'technical');
+  document.getElementById('btn-simple').classList.toggle('active',    mode === 'simple');
+
+  // Swap explanation text in every rendered card without a full re-render
+  const filtered = activeFilter === 'all'
+    ? allAlerts
+    : allAlerts.filter(a => a.severity === activeFilter);
+
+  filtered.forEach((_, idx) => {
+    const labelEl  = document.getElementById(`expl-label-${idx}`);
+    const textEl   = document.getElementById(`expl-text-${idx}`);
+    const techTmpl = document.getElementById(`tech-tmpl-${idx}`);
+    const simpTmpl = document.getElementById(`simple-tmpl-${idx}`);
+    if (!labelEl) return;
+
+    if (mode === 'technical') {
+      labelEl.textContent = 'Technical Analysis';
+      textEl.innerHTML    = techTmpl.innerHTML;
+    } else {
+      labelEl.textContent = 'Plain-English Summary';
+      textEl.innerHTML    = simpTmpl.innerHTML;
+    }
+  });
+}
+
+/* ── Severity filter ─────────────────────────────────────── */
+
+function setFilter(value, btn) {
+  activeFilter = value;
+  document.querySelectorAll('.filter-pills .pill').forEach(p => {
+    p.classList.toggle('active', p === btn);
+  });
+  renderAlerts();
+}
+
+/* ── Timeline modal ──────────────────────────────────────── */
+
+async function openTimeline(event, username) {
+  // Prevent the card-header click handler from also firing
+  event.stopPropagation();
+
+  document.getElementById('modal-username').textContent = username;
+  document.getElementById('modal-body').innerHTML =
+    '<div class="state-placeholder"><div class="spinner"></div>Loading timeline…</div>';
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  try {
+    const res = await fetch(`${API}/alerts/${encodeURIComponent(username)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderTimeline(data);
+  } catch (err) {
+    document.getElementById('modal-body').innerHTML =
+      `<div class="error-banner">Failed to load timeline: ${err.message}</div>`;
+  }
+}
+
+/** Render the attack-story timeline inside the modal body. */
+function renderTimeline(data) {
+  const { timeline = [], alerts = [] } = data;
+
+  /** Pick the visual class for a timeline node based on event type & status. */
+  function eventNodeClass(ev) {
+    if (ev.status === 'failed') return 'failed';
+    if (['privilege_escalation', 'access_sensitive_data'].includes(ev.event_type)) return 'warning';
+    return 'success';
+  }
+
+  const timelineHtml = timeline.length === 0
+    ? '<p style="color:var(--text-muted);font-size:13px;">No events found.</p>'
+    : `<div class="timeline">
+        ${timeline.map(ev => `
+          <div class="timeline-event ${eventNodeClass(ev)}">
+            <div class="te-header">
+              <span class="te-time">
+                ${escHtml(ev.timestamp.replace('T',' ').slice(0,19))}
+              </span>
+              <span class="te-type">${formatThreatType(ev.event_type)}</span>
+              <span class="te-status ${ev.status}">${ev.status}</span>
+            </div>
+            <div class="te-meta">
+              from ${escHtml(ev.source_ip)}
+              &nbsp;&bull;&nbsp;
+              hour ${String(ev.hour).padStart(2,'0')}:xx
+            </div>
+          </div>
+        `).join('')}
+      </div>`;
+
+  const alertsHtml = alerts.length === 0
+    ? '<p style="color:var(--text-muted);font-size:13px;margin-top:8px;">No alerts for this user.</p>'
+    : alerts.map(a => `
+        <div class="modal-alert-item">
+          <div class="badge ${sevClass(a.severity)}">${a.severity}</div>
+          <div class="mai-body">
+            <div class="mai-type">${formatThreatType(a.threat_type)}</div>
+            <div class="mai-score">
+              Risk score: <strong style="color:var(--text-primary)">${a.risk_score}</strong>
+              &nbsp;&bull;&nbsp;
+              ${escHtml(a.mitre_technique)} &mdash; ${escHtml(a.mitre_name)}
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-section-title">
+      Event Timeline &mdash; ${timeline.length} event${timeline.length !== 1 ? 's' : ''}
+    </div>
+    ${timelineHtml}
+    <div class="modal-alerts-section">
+      <div class="modal-section-title">Detected Threats &mdash; ${alerts.length}</div>
+      ${alertsHtml}
+    </div>
+  `;
+}
+
+/** Close the timeline modal. When triggered by the backdrop, check the target. */
+function closeModal(event) {
+  if (event && event.target !== document.getElementById('modal-overlay')) return;
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.getElementById('modal-overlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+});
+
+/* ── Boot ────────────────────────────────────────────────── */
+loadAll();
+</script>
+</body>
+</html>
