@@ -85,7 +85,7 @@ Each alert includes a specific, actionable recommendation (e.g. "Reset credentia
 
 ### Video Walkthrough
 
-> 📹 **[Watch the demo video](#)** *(link to be added)*
+>> 📹 **[Watch the demo video](https://youtu.be/Yfm5iqI5Q5k)**
 
 ### Screenshots
 
