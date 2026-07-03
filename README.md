@@ -85,17 +85,7 @@ Each alert includes a specific, actionable recommendation (e.g. "Reset credentia
 
 ### Video Walkthrough
 
->> 📹 **[Watch the demo video](https://youtu.be/Yfm5iqI5Q5k)**
-
-### Screenshots
-
-| Dashboard — Alert Overview | Attack Story Timeline |
-|---|---|
-| *(screenshot placeholder)* | *(screenshot placeholder)* |
-
-| Technical View | Simple View |
-|---|---|
-| *(screenshot placeholder)* | *(screenshot placeholder)* |
+> 📹 **[Watch the demo video](https://youtu.be/Yfm5iqI5Q5k)**
 
 ---
 
@@ -107,18 +97,18 @@ Each alert includes a specific, actionable recommendation (e.g. "Reset credentia
 ┌─────────────────────────────────────────────────────────────────┐
 │                        SentinelMind                             │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
+│                                                                   │
 │  Raw Log Data          Detection Engine        REST API         │
 │  (CSV / SIEM)   ──►   (Rule-based threat  ──► (FastAPI)        │
 │                         pattern matching)      Port 8000        │
-│                                │                    │           │
-│                                ▼                    ▼           │
+│                                │                    │            │
+│                                ▼                    ▼            │
 │                       Explanation Generator    SOC Dashboard    │
 │                       ├─ Technical text        ├─ Alert cards   │
-│                       ├─ Plain-English text     ├─ Risk scores  │
-│                       ├─ MITRE ATT&CK tag       ├─ View toggle  │
-│                       └─ Remediation action     └─ Timeline     │
-│                                                                 │
+│                       ├─ Plain-English text    ├─ Risk scores   │
+│                       ├─ MITRE ATT&CK tag      ├─ View toggle   │
+│                       └─ Remediation action    └─ Timeline      │
+│                                                                   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -223,7 +213,7 @@ The dual Technical/Simple View feature embodies this philosophy: the same intell
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/sentinelmind.git
+git clone https://github.com/sanasimran1403-jpg/sentinelmind.git
 cd sentinelmind
 ```
 
@@ -313,7 +303,7 @@ The `unknown_user` account — attacking from `45.33.12.88` at 02:14 — is the 
 
 | Name | University / Organisation | Role |
 |---|---|---|
-| *Your Name Here* | *Your University / Organisation* | Full-Stack Developer & AI Architect |
+| Sana Simrann | St. Paul's Degree & PG College, Osmania University | Full-Stack Developer & AI Architect |
 
 ---
 
